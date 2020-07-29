@@ -2,8 +2,8 @@ package main
 
 import (
 	"encoding/json"
-	"file-transfer/util"
 	"fmt"
+	"github.com/fridayhub/file-transfer/util"
 	"io"
 	"net"
 	"os"
