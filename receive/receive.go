@@ -16,14 +16,14 @@ func main() {
 	addr := ":9000"
 	listenner, err := net.Listen("tcp", addr)
 	if err != nil {
-		fmt.Println("net.Listen err =", err)
+		fmt.Println("net.Listen err:", err)
 		return
 	}
 	defer listenner.Close()
 	for {
 		conn, errl := listenner.Accept()
 		if errl != nil {
-			fmt.Println("listenner.Accept err =", errl)
+			fmt.Println("listenner.Accept err:", errl)
 			return
 		}
 		go func(conn net.Conn) {
@@ -35,23 +35,28 @@ func main() {
 			for {
 				n, err = conn.Read(buf)
 				if err != nil {
-					fmt.Println("conn.Read fileName err =", err)
+					fmt.Println("conn.Read fileName err:", err)
 					return
 				}
+
 				err = json.Unmarshal(buf[:n], &msg)
 				if err != nil {
+					fmt.Printf("n:%d,buf:%s,json.Unmarshal err:%s\n", n, string(buf[:n]), err)
 					n, err = conn.Write([]byte("error"))
-					return
+					if err != nil {
+						fmt.Println("conn.Write error get error:", err)
+						return
+					}
+					continue
 				}
 
 				n, err = conn.Write([]byte("ok"))
 				if err != nil {
-					fmt.Println("conn.Write ok err =", err)
+					fmt.Println("conn.Write ok err:", err)
 					return
 				}
 				msg.FileName = filepath.Join(BASEPATH, msg.FileName)
 				if err = CheckPath(filepath.Dir(msg.FileName)); err != nil {
-					fmt.Println(err)
 					return
 				}
 				if err = RecvFile(msg.FileName, conn, msg.Size); err != nil {
@@ -85,7 +90,6 @@ func RecvFile(fileName string, conn net.Conn, size int64) error {
 
 	file, err := os.Create(fileName)
 	if err != nil {
-		fmt.Println("os.Create err =", err)
 		return err
 	}
 
@@ -104,18 +108,18 @@ func RecvFile(fileName string, conn net.Conn, size int64) error {
 			if err == io.EOF {
 				fmt.Println("任务完成")
 			} else {
-				fmt.Println("conn.Read err =", err)
+				fmt.Println("conn.Read err:", err)
 			}
 			return err
 		}
 
 		n, err = file.Write(buf[:n])
 		if err != nil {
-			fmt.Println("file.Write err =", err)
+			fmt.Println("file.Write err:", err)
 			break
 		}
 		count += int64(n)
-		fmt.Printf("count:%d,size:%d\n", count, size)
+		//fmt.Printf("count:%d,size:%d\n", count, size)
 		if count == size {
 			fmt.Printf("文件：%s, 接受完成\n", fileName)
 			return nil
